@@ -3,13 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-void usb_ctr_int(void);
-void usb_pma_int(void);
-void usb_err_int(void);
-void usb_reset_int(void);
-void usb_sof_int(void);
-void usb_esof_int(void);
-
 volatile USB_TypeDef *USB = (USB_TypeDef *)USB_BASE;
 volatile USBLIB_EPBuf EPBufTable[EPCOUNT] __attribute__((at(USB_PBUFFER)));
 volatile uint32_t     USBEP[EPCOUNT] __attribute__((at(USB_BASE)));
