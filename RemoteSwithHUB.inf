@@ -1,0 +1,120 @@
+; Windows USB CDC ACM Setup File
+; Copyright (c) 2000 Microsoft Corporation
+; Copyright (C) 2007 Microchip Technology Inc.
+
+[Version]
+Signature="$Windows NT$"
+Class=Ports
+ClassGuid={4D36E978-E325-11CE-BFC1-08002BE10318}
+Provider=%MFGNAME%
+LayoutFile=layout.inf
+;CatalogFile=%MFGFILENAME%.cat
+;DriverVer=02/16/2011,1.0
+DriverVer=12/03/2009,5.1.2600.3
+
+[Manufacturer]
+%MFGNAME%=DeviceList, NTamd64
+
+[DestinationDirs]
+DefaultDestDir=12
+;------------------------------------------------------------------------------
+; Windows 2000/XP/Vista-32bit Sections
+;------------------------------------------------------------------------------
+
+[DriverInstall.NT]
+include=mdmcpq.inf
+CopyFiles=DriverCopyFiles.NT
+AddReg=DriverInstall.NT.AddReg
+
+[DriverInstall.NT.HW]
+AddReg=DriverInstall.NT.HW.AddReg
+
+[DriverCopyFiles.NT]
+%DRIVERFILENAME%.sys,,,0x20
+
+[DriverInstall.NT.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,%DRIVERFILENAME%.sys
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+
+[DriverInstall.NT.HW.AddReg]
+HKR,,"UpperFilters",0x00010000,%FILTERDRIVERFILENAME%
+;HKR,,"ConfigData",1,01,04,00,00,10,27,88,13,C4,09,E2,04,71,02,38,41,9c,80,4E,C0,34,00,1A,00,0D,00,06,40,03,80,00,00,d0,80
+;HKR,,"ConfigData",1,11,04,00,00,10,27,00,00,88,13,00,00,C4,09,00,00,E2,04,00,00,71,02,00,00,38,41,00,00,9C,80,00,00,4E,C0,00,00,34,00,00,00,1A,00,00,00,0D,00,00,00,06,40,00,00,03,80,00,00,00,00,00,00,D0,80,00,00
+;HKR,,"MinReadTimeout",0x00010001,0
+;HKR,,"MinWriteTimeout",0x00010001,0
+;HKR,,"LatencyTimer",0x00010001,2
+
+[DriverInstall.NT.Services]
+AddService =%DRIVERFILENAME%, 0x00000002, DriverService.NT
+AddService =%FILTERDRIVERFILENAME%,,SerenumService
+
+[DriverService.NT]
+DisplayName=%SERVICE%
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%12%\%DRIVERFILENAME%.sys
+;------------------------------------------------------------------------------
+; Vista-64bit Sections
+;------------------------------------------------------------------------------
+[DriverInstall.NTamd64]
+include=mdmcpq.inf
+CopyFiles=DriverCopyFiles.NTamd64
+AddReg=DriverInstall.NTamd64.AddReg
+
+[DriverInstall.NTamd64.HW]
+AddReg=DriverInstall.NTamd64.HW.AddReg
+
+[DriverCopyFiles.NTamd64]
+%DRIVERFILENAME%.sys,,,0x20
+
+[DriverInstall.NTamd64.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,%DRIVERFILENAME%.sys
+HKR,,EnumPropPages32,,"MsPorts.dll,SerialPortPropPageProvider"
+
+[DriverInstall.NTamd64.HW.AddReg]
+HKR,,"UpperFilters",0x00010000,%FILTERDRIVERFILENAME%
+
+[DriverInstall.NTamd64.Services]
+AddService=%DRIVERFILENAME%, 0x00000002, DriverService.NTamd64
+AddService =%FILTERDRIVERFILENAME%,,SerenumService
+
+[DriverService.NTamd64]
+DisplayName=%SERVICE%
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%12%\%DRIVERFILENAME%.sys
+
+[SerenumService]
+DisplayName    = %SERENUMDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\%FILTERDRIVERFILENAME%.sys
+LoadOrderGroup = PNP Filter
+
+[SourceDisksFiles]
+[SourceDisksNames]
+;------------------------------------------------------------------------------
+; Vendor and Product ID Definitions
+;------------------------------------------------------------------------------
+[DeviceList]
+%DESCRIPTION%=DriverInstall, USB\VID_25AE&PID_24AB
+
+[DeviceList.NTamd64]
+%DESCRIPTION%=DriverInstall, USB\VID_25AE&PID_24AB
+;------------------------------------------------------------------------------
+; String Definitions
+;------------------------------------------------------------------------------
+[Strings]
+MFGFILENAME="RemoteSwitchHUB"
+DRIVERFILENAME ="usbser"
+MFGNAME="SaeWave.com"
+DESCRIPTION="RemoteSwitch HUB"
+SERVICE="RemoteSwitch HUB driver"
+FILTERDRIVERFILENAME ="serenum"
+SERENUMDESC = "Serenum Filter Driver"
+;DEVINTERFACE_COMPORT="{86E0D1E0-8089-11D0-9CE4-08003E301F73}"
