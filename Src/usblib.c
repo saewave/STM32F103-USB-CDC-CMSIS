@@ -8,7 +8,7 @@ volatile USBLIB_EPBuf EPBufTable[EPCOUNT] __attribute__((at(USB_PBUFFER)));
 volatile uint32_t     USBEP[EPCOUNT] __attribute__((at(USB_BASE)));
 USBLIB_SetupPacket *  SetupPacket;
 volatile USBLIB_Log   Log[LOG_LENGTH];
-volatile uint8_t      LogIdx = 0, LogPassIdx = 1;
+volatile uint8_t      LogIdx = 0, LogPassIdx = 0;
 volatile uint8_t      DeviceAddress = 0;
 
 USBLIB_EPData EpData[EPCOUNT] =
@@ -98,7 +98,7 @@ const uint8_t USBD_CDC_CFG_DESCRIPTOR[] =
         0x04, /* bFunctionLength */
         0x24, /* bDescriptorType: CS_INTERFACE */
         0x02, /* bDescriptorSubtype: Abstract Control Management desc */
-        0x00, /* bmCapabilities */
+        0x02, /* bmCapabilities */
 
         /*Union Functional Descriptor*/
         0x05, /* bFunctionLength */
@@ -158,8 +158,7 @@ _USB_STRING_(wsCDCData, L"CDC Data")
 
 void USBLIB_AddToLogArr(uint8_t Operation, uint8_t EPn, uint8_t *Data, uint8_t Length)
 {
-    if (LogPassIdx > 0) {
-        LogPassIdx--;
+    if (LogPassIdx == 0) {
         return;
     }
     Log[LogIdx].EPn       = EPn;
@@ -184,8 +183,8 @@ void USBLIB_Reset(void)
         EPBufTable[i].TX_Count.Value   = 0;
         Addr += EpData[i].TX_Max;
         EPBufTable[i].RX_Address.Value = Addr;
-        if (EpData[i].RX_Max > 62)
-            EPBufTable[i].RX_Count.Value = 0x8000 | ((EpData[i].RX_Max / 2) << 10);
+        if (EpData[i].RX_Max >= 64)
+            EPBufTable[i].RX_Count.Value = 0x8000 | ((EpData[i].RX_Max / 64) << 10);
         else
             EPBufTable[i].RX_Count.Value = ((EpData[i].RX_Max / 2) << 10);
 
@@ -241,7 +240,7 @@ void USBLIB_EPBuf2Pma(uint8_t EPn)
     EPBufTable[EPn].TX_Count.Value = Count;
 
     Distination = (uint32_t *)(USB_PBUFFER + EPBufTable[EPn].TX_Address.Value * 2);
-//    USBLIB_AddToLogArr(LOG_OP_GET_DESC_TX, EPn, (uint8_t *)EpData[EPn].pTX_BUFF, Count);
+    USBLIB_AddToLogArr(LOG_OP_GET_DESC_TX, EPn, (uint8_t *)EpData[EPn].pTX_BUFF, Count);
     for (uint8_t i = 0; i < (Count + 1) / 2; i++) {
         *(uint32_t *)Distination = *(uint16_t *)EpData[EPn].pTX_BUFF;
         Distination++;
@@ -304,7 +303,7 @@ void USBLIB_EPHandler(uint16_t Status)
     if (EP & EP_CTR_RX) { //something received
         USBEP[EPn] &= (~EP_CTR_RX & EP_MASK);
         USBLIB_Pma2EPBuf2(EPn);
-//        USBLIB_AddToLogArr(LOG_OP_GET_DESC_RX, EPn, (uint8_t *)EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
+        USBLIB_AddToLogArr(LOG_OP_GET_DESC_RX, EPn, (uint8_t *)EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
         if (EP && EPn == 0) { //If control endpoint
             if (EP & USB_EP0R_SETUP) {
                 SetupPacket = (USBLIB_SetupPacket *)EpData[EPn].pRX_BUFF;
@@ -354,7 +353,7 @@ void USBLIB_EPHandler(uint16_t Status)
                 }
             }
         } else {
-            USBLIB_AddToLogArr(LOG_OP_GET_CLASS_DATA, EPn, (uint8_t *)EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
+//            USBLIB_AddToLogArr(LOG_OP_GET_CLASS_DATA, EPn, (uint8_t *)EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
         }
         USBLIB_setStatRx(EPn, RX_VALID);
     }
