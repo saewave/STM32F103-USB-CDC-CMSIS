@@ -11,6 +11,7 @@
 #define CTR_RX            0x8000
 #define CTR_TX            0x80
 #define CDC_CMD_PACKET_SIZE 8  /* Control Endpoint Packet size */ 
+#define CDC_DATA_FS_CMD_PACKET_SIZE 16  /* Endpoint IN & OUT Packet size */
 #define CDC_DATA_FS_MAX_PACKET_SIZE 64  /* Endpoint IN & OUT Packet size */
 #define LANG_US          (uint16_t)0x0409
 
@@ -67,7 +68,6 @@
 #define USB_REQUEST_GET_INTERFACE       10
 #define USB_REQUEST_SET_INTERFACE       11
 #define USB_REQUEST_SYNC_FRAME          12
-#define USB_REQUEST_LINE_STATE          22
 
 /* USB Descriptor Types */
 #define USB_DEVICE_DESC_TYPE            1
@@ -103,17 +103,66 @@
 #define CDC_OUT_EP                                  0x01  /* EP1 for data OUT */
 #define CDC_CMD_EP                                  0x82  /* EP2 for CDC commands */
 
+#define USB_DEVICE_CDC_REQUEST_SEND_ENCAPSULATED_COMMAND \
+    (0x00) /*!< The CDC class request code for SEND_ENCAPSULATED_COMMAND. */
+#define USB_DEVICE_CDC_REQUEST_GET_ENCAPSULATED_RESPONSE \
+    (0x01)                                             /*!< The CDC class request code for GET_ENCAPSULATED_RESPONSE. */
+#define USB_DEVICE_CDC_REQUEST_SET_COMM_FEATURE (0x02) /*!< The CDC class request code for SET_COMM_FEATURE. */
+#define USB_DEVICE_CDC_REQUEST_GET_COMM_FEATURE (0x03) /*!< The CDC class request code for GET_COMM_FEATURE. */
+#define USB_DEVICE_CDC_REQUEST_CLEAR_COMM_FEATURE (0x04) /*!< The CDC class request code for CLEAR_COMM_FEATURE. */
+#define USB_DEVICE_CDC_REQUEST_SET_AUX_LINE_STATE (0x10) /*!< The CDC class request code for SET_AUX_LINE_STATE. */
+#define USB_DEVICE_CDC_REQUEST_SET_HOOK_STATE (0x11)     /*!< The CDC class request code for SET_HOOK_STATE. */
+#define USB_DEVICE_CDC_REQUEST_PULSE_SETUP (0x12)        /*!< The CDC class request code for PULSE_SETUP. */
+#define USB_DEVICE_CDC_REQUEST_SEND_PULSE (0x13)         /*!< The CDC class request code for SEND_PULSE. */
+#define USB_DEVICE_CDC_REQUEST_SET_PULSE_TIME (0x14)     /*!< The CDC class request code for SET_PULSE_TIME. */
+#define USB_DEVICE_CDC_REQUEST_RING_AUX_JACK (0x15)      /*!< The CDC class request code for RING_AUX_JACK. */
+#define USB_DEVICE_CDC_REQUEST_SET_LINE_CODING (0x20)    /*!< The CDC class request code for SET_LINE_CODING. */
+#define USB_DEVICE_CDC_REQUEST_GET_LINE_CODING (0x21)    /*!< The CDC class request code for GET_LINE_CODING. */
+#define USB_DEVICE_CDC_REQUEST_SET_CONTROL_LINE_STATE \
+    (0x22)                                                /*!< The CDC class request code for SET_CONTROL_LINE_STATE. */
+#define USB_DEVICE_CDC_REQUEST_SEND_BREAK (0x23)          /*!< The CDC class request code for SEND_BREAK. */
+#define USB_DEVICE_CDC_REQUEST_SET_RINGER_PARAMS (0x30)   /*!< The CDC class request code for SET_RINGER_PARAMS. */
+#define USB_DEVICE_CDC_REQUEST_GET_RINGER_PARAMS (0x31)   /*!< The CDC class request code for GET_RINGER_PARAMS. */
+#define USB_DEVICE_CDC_REQUEST_SET_OPERATION_PARAM (0x32) /*!< The CDC class request code for SET_OPERATION_PARAM. */
+#define USB_DEVICE_CDC_REQUEST_GET_OPERATION_PARAM (0x33) /*!< The CDC class request code for GET_OPERATION_PARAM. */
+#define USB_DEVICE_CDC_REQUEST_SET_LINE_PARAMS (0x34)     /*!< The CDC class request code for SET_LINE_PARAMS. */
+#define USB_DEVICE_CDC_REQUEST_GET_LINE_PARAMS (0x35)     /*!< The CDC class request code for GET_LINE_PARAMS. */
+#define USB_DEVICE_CDC_REQUEST_DIAL_DIGITS (0x36)         /*!< The CDC class request code for DIAL_DIGITS. */
+#define USB_DEVICE_CDC_REQUEST_SET_UNIT_PARAMETER (0x37)  /*!< The CDC class request code for SET_UNIT_PARAMETER. */
+#define USB_DEVICE_CDC_REQUEST_GET_UNIT_PARAMETER (0x38)  /*!< The CDC class request code for GET_UNIT_PARAMETER. */
+#define USB_DEVICE_CDC_REQUEST_CLEAR_UNIT_PARAMETER \
+    (0x39) /*!< The CDC class request code for CLEAR_UNIT_PARAMETER. */
+#define USB_DEVICE_CDC_REQUEST_SET_ETHERNET_MULTICAST_FILTERS \
+    (0x40) /*!< The CDC class request code for SET_ETHERNET_MULTICAST_FILTERS. */
+#define USB_DEVICE_CDC_REQUEST_SET_ETHERNET_POW_PATTER_FILTER \
+    (0x41) /*!< The CDC class request code for SET_ETHERNET_POW_PATTER_FILTER. */
+#define USB_DEVICE_CDC_REQUEST_GET_ETHERNET_POW_PATTER_FILTER \
+    (0x42) /*!< The CDC class request code for GET_ETHERNET_POW_PATTER_FILTER. */
+#define USB_DEVICE_CDC_REQUEST_SET_ETHERNET_PACKET_FILTER \
+    (0x43) /*!< The CDC class request code for SET_ETHERNET_PACKET_FILTER. */
+#define USB_DEVICE_CDC_REQUEST_GET_ETHERNET_STATISTIC \
+    (0x44)                                                /*!< The CDC class request code for GET_ETHERNET_STATISTIC. */
+#define USB_DEVICE_CDC_REQUEST_SET_ATM_DATA_FORMAT (0x50) /*!< The CDC class request code for SET_ATM_DATA_FORMAT. */
+#define USB_DEVICE_CDC_REQUEST_GET_ATM_DEVICE_STATISTICS \
+    (0x51) /*!< The CDC class request code for GET_ATM_DEVICE_STATISTICS. */
+#define USB_DEVICE_CDC_REQUEST_SET_ATM_DEFAULT_VC (0x52) /*!< The CDC class request code for SET_ATM_DEFAULT_VC. */
+#define USB_DEVICE_CDC_REQUEST_GET_ATM_VC_STATISTICS \
+    (0x53) /*!< The CDC class request code for GET_ATM_VC_STATISTICS. */
+#define USB_DEVICE_CDC_REQUEST_MDLM_SPECIFIC_REQUESTS_MASK \
+    (0x7F) /*!< The CDC class request code for MDLM_SPECIFIC_REQUESTS_MASK. */
+
 #define RXCNT(bsize,nblock)        (uint16_t)(((bsize & 1) << 15) | ((nblock/2 & 0x1F) << 10))
 #define LOBYTE(x)  ((uint8_t)(x & 0x00FF))
 #define HIBYTE(x)  ((uint8_t)((x & 0xFF00) >>8))
 
-#define LOG_LENGTH 20
-#define LOG_DATA_LENGTH 20
+#define LOG_LENGTH 30
+#define LOG_DATA_LENGTH 10
 #define LOG_OP_RESET          1
 #define LOG_OP_GET_DESC_RX    2
 #define LOG_OP_GET_DESC_TX    3
 #define LOG_OP_GET_STATUS_TX  4
 #define LOG_OP_SET_ADDRESS_RX 5
+#define LOG_OP_GET_CLASS_DATA 6
 
 #define _USB_STRING_(name,ws)             \
 const struct    name                      \
@@ -230,6 +279,13 @@ typedef struct {
     uint8_t DescriptorType;
     uint16_t *String;
 } USBLIB_StringDesc;
+
+typedef struct {
+    uint32_t baudRate;
+    uint8_t charFormat;
+    uint8_t parityType;
+    uint8_t dataBits;
+} USBLIB_LineCoding;
 
 #pragma pack(pop)
 
