@@ -99,9 +99,10 @@
 
 /* CDC */
 #define USB_CDC_CONFIG_DESC_SIZ                     67
-#define CDC_IN_EP                                   0x81  /* EP1 for data IN */
-#define CDC_OUT_EP                                  0x01  /* EP1 for data OUT */
-#define CDC_CMD_EP                                  0x82  /* EP2 for CDC commands */
+#define CDC_CMD_EP                                  0x81  /* EP2 for CDC commands */
+#define CDC_IN_EP                                   0x82  /* EP1 for data IN */
+#define CDC_OUT_EP                                  0x02  /* EP1 for data OUT */
+
 
 #define USB_DEVICE_CDC_REQUEST_SEND_ENCAPSULATED_COMMAND \
     (0x00) /*!< The CDC class request code for SEND_ENCAPSULATED_COMMAND. */
