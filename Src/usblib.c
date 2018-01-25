@@ -7,16 +7,14 @@ volatile USB_TypeDef *USB = (USB_TypeDef *)USB_BASE;
 volatile USBLIB_EPBuf EPBufTable[EPCOUNT] __attribute__((at(USB_PBUFFER)));
 volatile uint32_t     USBEP[EPCOUNT] __attribute__((at(USB_BASE)));
 USBLIB_SetupPacket *  SetupPacket;
-volatile USBLIB_Log   Log[LOG_LENGTH];
-volatile uint8_t      LogIdx = 0, LogPassIdx = 0;
 volatile uint8_t      DeviceAddress = 0;
 
 USBLIB_EPData EpData[EPCOUNT] =
     {
         {0, EP_CONTROL, 8, 8, 0, 0, 0, 0, 64, 0},
         {1, EP_INTERRUPT, 16, 16, 0, 0, 0, 0, 64, 0},
-        {2, EP_BULK, 64, 64, 0, 0, 0, 0, 64, 0},
-        {3, EP_BULK, 64, 64, 0, 0, 0, 0, 64, 0}};
+        {2, EP_BULK, 64, 64, 0, 0, 0, 0, 64, 0},  //IN  (Device -> Host)
+        {3, EP_BULK, 64, 64, 0, 0, 0, 0, 64, 0}}; //OUT (Host   -> Device)
 
 void USBLIB_Init(void)
 {
@@ -31,7 +29,7 @@ void USBLIB_Init(void)
     NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
 }
 
-USBLIB_LineCoding lineCoding = {0,0,0,0};
+USBLIB_LineCoding lineCoding = {115200, 0, 0, 8};
 
 const uint8_t USB_DEVICE_DESC[] =
     {
@@ -57,9 +55,9 @@ const uint8_t USB_DEVICE_DESC[] =
 const uint8_t USBD_CDC_CFG_DESCRIPTOR[] =
     {
         /*Configuration Descriptor*/
-        0x09,                    /* bLength: Configuration Descriptor size */
-        USB_CFG_DESC_TYPE,       /* bDescriptorType: Configuration */
-        USB_CDC_CONFIG_DESC_SIZ, /* wTotalLength:no of returned bytes */
+        0x09, /* bLength: Configuration Descriptor size */
+        0x02, /* bDescriptorType: Configuration */
+        67,   /* wTotalLength:no of returned bytes */
         0x00,
         0x02, /* bNumInterfaces: 2 interface */
         0x01, /* bConfigurationValue: Configuration value */
@@ -70,8 +68,8 @@ const uint8_t USBD_CDC_CFG_DESCRIPTOR[] =
         /*---------------------------------------------------------------------------*/
 
         /*Interface Descriptor */
-        0x09,                /* bLength: Interface Descriptor size */
-        USB_IFACE_DESC_TYPE, /* bDescriptorType: Interface */
+        0x09, /* bLength: Interface Descriptor size */
+        0x04, /* bDescriptorType: Interface */
         0x00, /* bInterfaceNumber: Number of Interface */
         0x00, /* bAlternateSetting: Alternate setting */
         0x01, /* bNumEndpoints: One endpoints used */
@@ -107,44 +105,43 @@ const uint8_t USBD_CDC_CFG_DESCRIPTOR[] =
         0x00, /* bMasterInterface: Communication class interface */
         0x01, /* bSlaveInterface0: Data Class Interface */
 
-
         /*Endpoint 2 Descriptor*/
-        0x07,                        /* bLength: Endpoint Descriptor size */
-        USB_EP_DESC_TYPE,            /* bDescriptorType: Endpoint */
-        CDC_CMD_EP,                  /* bEndpointAddress */
-        0x03,                        /* bmAttributes: Interrupt */
-        LOBYTE(CDC_DATA_FS_CMD_PACKET_SIZE), /* wMaxPacketSize: */
-        HIBYTE(CDC_DATA_FS_CMD_PACKET_SIZE),
-        0x10, /* bInterval: */
+        0x07, /* bLength: Endpoint Descriptor size */
+        0x05, /* bDescriptorType: Endpoint */
+        0x81, /* bEndpointAddress IN1 */
+        0x03, /* bmAttributes: Interrupt */
+        0x08, /* wMaxPacketSize LO: */
+        0x00, /* wMaxPacketSize HI: */
+        0xFF, /* bInterval: */
         /*---------------------------------------------------------------------------*/
 
         /*Data class interface descriptor*/
-        0x09,                /* bLength: Endpoint Descriptor size */
-        USB_IFACE_DESC_TYPE, /* bDescriptorType: */
-        0x01,                /* bInterfaceNumber: Number of Interface */
-        0x00,                /* bAlternateSetting: Alternate setting */
-        0x02,                /* bNumEndpoints: Two endpoints used */
-        0x0A,                /* bInterfaceClass: CDC */
-        0x00,                /* bInterfaceSubClass: */
-        0x00,                /* bInterfaceProtocol: */
-        0x00,                /* iInterface: */
+        0x09, /* bLength: Endpoint Descriptor size */
+        0x04, /* bDescriptorType: */
+        0x01, /* bInterfaceNumber: Number of Interface */
+        0x00, /* bAlternateSetting: Alternate setting */
+        0x02, /* bNumEndpoints: Two endpoints used */
+        0x0A, /* bInterfaceClass: CDC */
+        0x02, /* bInterfaceSubClass: */
+        0x00, /* bInterfaceProtocol: */
+        0x00, /* iInterface: */
 
-        /*Endpoint OUT Descriptor*/
-        0x07,                                /* bLength: Endpoint Descriptor size */
-        USB_EP_DESC_TYPE,                    /* bDescriptorType: Endpoint */
-        CDC_OUT_EP,                          /* bEndpointAddress */
-        0x02,                                /* bmAttributes: Bulk */
-        LOBYTE(CDC_DATA_FS_MAX_PACKET_SIZE), /* wMaxPacketSize: */
-        HIBYTE(CDC_DATA_FS_MAX_PACKET_SIZE),
+        /*Endpoint IN2 Descriptor*/
+        0x07, /* bLength: Endpoint Descriptor size */
+        0x05, /* bDescriptorType: Endpoint */
+        0x82, /* bEndpointAddress IN2 */
+        0x02, /* bmAttributes: Bulk */
+        64,   /* wMaxPacketSize: */
+        0x00,
         0x00, /* bInterval: ignore for Bulk transfer */
 
-        /*Endpoint IN Descriptor*/
-        0x07,                                /* bLength: Endpoint Descriptor size */
-        USB_EP_DESC_TYPE,                    /* bDescriptorType: Endpoint */
-        CDC_IN_EP,                           /* bEndpointAddress */
-        0x02,                                /* bmAttributes: Bulk */
-        LOBYTE(CDC_DATA_FS_MAX_PACKET_SIZE), /* wMaxPacketSize: */
-        HIBYTE(CDC_DATA_FS_MAX_PACKET_SIZE),
+        /*Endpoint OUT3 Descriptor*/
+        0x07, /* bLength: Endpoint Descriptor size */
+        0x05, /* bDescriptorType: Endpoint */
+        0x03, /* bEndpointAddress */
+        0x02, /* bmAttributes: Bulk */
+        64,   /* wMaxPacketSize: */
+        0,
         0x00 /* bInterval: ignore for Bulk transfer */
 };
 
@@ -155,19 +152,6 @@ _USB_STRING_(wsProd, L"RemoteSwitch HUB")
 _USB_STRING_(wsSN, L"0123-4567-89")
 _USB_STRING_(wsCDC, L"CDC Device")
 _USB_STRING_(wsCDCData, L"CDC Data")
-
-void USBLIB_AddToLogArr(uint8_t Operation, uint8_t EPn, uint8_t *Data, uint8_t Length)
-{
-    if (LogPassIdx == 0) {
-        return;
-    }
-    Log[LogIdx].EPn       = EPn;
-    Log[LogIdx].Operation = Operation;
-    Log[LogIdx].Length    = Length;
-    memcpy((uint8_t *)Log[LogIdx].Data, Data, Length <= LOG_DATA_LENGTH ? Length : LOG_DATA_LENGTH);
-    if (LogIdx < LOG_LENGTH)
-        LogIdx++;
-}
 
 void USBLIB_Reset(void)
 {
@@ -190,8 +174,6 @@ void USBLIB_Reset(void)
 
         Addr += EpData[i].RX_Max;
 
-        //        if (!EpData[i].pTX_BUFF)
-        //            EpData[i].pTX_BUFF =(uint16_t*)malloc(EpData[i].TX_BUFF_SIZE);
         if (!EpData[i].pRX_BUFF)
             EpData[i].pRX_BUFF = (uint16_t *)malloc(EpData[i].RX_Max);
 
@@ -221,7 +203,7 @@ void USBLIB_setStatRx(uint8_t EPn, uint16_t Stat)
 
 void USBLIB_Pma2EPBuf2(uint8_t EPn)
 {
-    uint8_t   Count = EpData[EPn].lRX = (EPBufTable[EPn].RX_Count.Value & 0x3FF) >> 1;
+    uint8_t   Count = EpData[EPn].lRX = (EPBufTable[EPn].RX_Count.Value & 0x3FF);
     uint32_t *Address                 = (uint32_t *)(USB_PBUFFER + EPBufTable[EPn].RX_Address.Value * 2);
     uint16_t *Distination             = (uint16_t *)EpData[EPn].pRX_BUFF;
     for (uint8_t i = 0; i < Count; i++) {
@@ -234,13 +216,12 @@ void USBLIB_Pma2EPBuf2(uint8_t EPn)
 void USBLIB_EPBuf2Pma(uint8_t EPn)
 {
     uint32_t *Distination;
-    uint8_t Count;
+    uint8_t   Count;
 
     Count                          = EpData[EPn].lTX <= EpData[EPn].TX_Max ? EpData[EPn].lTX : EpData[EPn].TX_Max;
     EPBufTable[EPn].TX_Count.Value = Count;
 
     Distination = (uint32_t *)(USB_PBUFFER + EPBufTable[EPn].TX_Address.Value * 2);
-    USBLIB_AddToLogArr(LOG_OP_GET_DESC_TX, EPn, (uint8_t *)EpData[EPn].pTX_BUFF, Count);
     for (uint8_t i = 0; i < (Count + 1) / 2; i++) {
         *(uint32_t *)Distination = *(uint16_t *)EpData[EPn].pTX_BUFF;
         Distination++;
@@ -249,7 +230,7 @@ void USBLIB_EPBuf2Pma(uint8_t EPn)
     EpData[EPn].lTX -= Count;
 }
 
-void USBLIB_SendData(uint8_t EPn, uint16_t *Data, uint8_t Length)
+void USBLIB_SendData(uint8_t EPn, uint16_t *Data, uint16_t Length)
 {
 
     EpData[EPn].lTX      = Length;
@@ -258,7 +239,7 @@ void USBLIB_SendData(uint8_t EPn, uint16_t *Data, uint8_t Length)
         USBLIB_EPBuf2Pma(EPn);
     } else {
         EPBufTable[EPn].TX_Count.Value = 0;
-//        USBLIB_AddToLogArr(LOG_OP_GET_DESC_TX, EPn, 0, 0);
+        //        USBLIB_AddToLogArr(LOG_OP_GET_DESC_TX, EPn, 0, 0);
     }
     USBLIB_setStatTx(EPn, TX_VALID);
 }
@@ -275,9 +256,6 @@ void USBLIB_GetDescriptor(USBLIB_SetupPacket *SPacket)
     case USB_CFG_DESC_TYPE:
         USBLIB_SendData(0, (uint16_t *)&USBD_CDC_CFG_DESCRIPTOR, sizeof(USBD_CDC_CFG_DESCRIPTOR));
         break;
-    case USB_DEVICE_QR_DESC_TYPE:
-        //Some strange descriptor type...
-        break;
 
     case USB_STR_DESC_TYPE:
         pSTR = (USB_STR_DESCRIPTOR *)&wLANGID;
@@ -292,74 +270,62 @@ void USBLIB_GetDescriptor(USBLIB_SetupPacket *SPacket)
 
 void USBLIB_EPHandler(uint16_t Status)
 {
-/*    static struct lineState {
-        uint8_t dtr;
-        uint8_t rts;
-    } lineState;
-*/
-    uint16_t DeviceConfigured = 0;
+    uint16_t DeviceConfigured = 0, DeviceStatus = 0;
     uint8_t  EPn = Status & USB_ISTR_EP_ID;
     uint32_t EP  = USBEP[EPn];
     if (EP & EP_CTR_RX) { //something received
-        USBEP[EPn] &= (~EP_CTR_RX & EP_MASK);
         USBLIB_Pma2EPBuf2(EPn);
-        USBLIB_AddToLogArr(LOG_OP_GET_DESC_RX, EPn, (uint8_t *)EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
-        if (EP && EPn == 0) { //If control endpoint
+        if (EPn == 0) { //If control endpoint
             if (EP & USB_EP0R_SETUP) {
                 SetupPacket = (USBLIB_SetupPacket *)EpData[EPn].pRX_BUFF;
-                if (SetupPacket->bmRequestType.Type == REQUEST_STANDARD) {
-                    switch (SetupPacket->bRequest) {
-                        case USB_REQUEST_SET_ADDRESS:
-                            USBLIB_SendData(0, 0, 0);
-                            DeviceAddress = SetupPacket->wValue.L;
-                            break;
-                        case USB_REQUEST_GET_DESCRIPTOR:
-                            USBLIB_GetDescriptor(SetupPacket);
-                            break;
-                        case USB_REQUEST_GET_STATUS:
-                            USBLIB_SendData(0, (uint16_t *)1, 2);
-                            break;
-                        case USB_REQUEST_GET_CONFIGURATION:
-                            USBLIB_SendData(0, &DeviceConfigured, 1);
-                            break;
-                        case USB_REQUEST_SET_CONFIGURATION:
-                            DeviceConfigured = 1;
-                            USBLIB_SendData(0, 0, 0);
-                            break;
-                    }
-                }
-                if (SetupPacket->bmRequestType.Type == REQUEST_CLASS) {
-                    USBLIB_AddToLogArr(LOG_OP_GET_DESC_RX, EPn, (uint8_t *)EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
-                    switch (SetupPacket->bRequest) {
-                        case USB_DEVICE_CDC_REQUEST_SET_COMM_FEATURE :
-                            //TODO
-                            break;
-                        case USB_DEVICE_CDC_REQUEST_SET_LINE_CODING:
-//                            lineCoding.baudRate = (uint16_t)EpData[EPn].pRX_BUFF[0];
-//                            lineCoding.charFormat = (uint8_t)EpData[EPn].pRX_BUFF[1];
-//                            lineCoding.parityType = (uint8_t)EpData[EPn].pRX_BUFF[2];
-//                            lineCoding.dataBits = (uint8_t)EpData[EPn].pRX_BUFF[3];
-//                            USBLIB_SendData(0, 0, 0);
-                            break;
-                        case USB_DEVICE_CDC_REQUEST_GET_LINE_CODING:
-                            USBLIB_SendData(EPn, (uint16_t*)&lineCoding, sizeof(lineCoding));
-                            break;
-                        case USB_DEVICE_CDC_REQUEST_SET_CONTROL_LINE_STATE:
-//                            lineState.dtr = SetupPacket->wValue.H & 0x01;
-//                            lineState.rts = SetupPacket->wValue.L & 0x01;
-                            USBLIB_SendData(0, 0, 0);
-                            break;
-                    }
+                switch (SetupPacket->bRequest) {
+                case USB_REQUEST_SET_ADDRESS:
+                    USBLIB_SendData(0, 0, 0);
+                    DeviceAddress = SetupPacket->wValue.L;
+                    break;
+
+                case USB_REQUEST_GET_DESCRIPTOR:
+                    USBLIB_GetDescriptor(SetupPacket);
+                    break;
+
+                case USB_REQUEST_GET_STATUS:
+                    USBLIB_SendData(0, &DeviceStatus, 2);
+                    break;
+
+                case USB_REQUEST_GET_CONFIGURATION:
+                    USBLIB_SendData(0, &DeviceConfigured, 1);
+                    break;
+
+                case USB_REQUEST_SET_CONFIGURATION:
+                    DeviceConfigured = 1;
+                    USBLIB_SendData(0, 0, 0);
+                    break;
+
+                case USB_DEVICE_CDC_REQUEST_SET_COMM_FEATURE:
+                    //TODO
+                    break;
+
+                case USB_DEVICE_CDC_REQUEST_SET_LINE_CODING:
+                    USBLIB_SendData(0, 0, 0);
+                    break;
+
+                case USB_DEVICE_CDC_REQUEST_GET_LINE_CODING:
+                    USBLIB_SendData(EPn, (uint16_t *)&lineCoding, sizeof(lineCoding));
+                    break;
+
+                case USB_DEVICE_CDC_REQUEST_SET_CONTROL_LINE_STATE:
+                    USBLIB_SendData(0, 0, 0);
+                    break;
                 }
             }
-        } else {
-//            USBLIB_AddToLogArr(LOG_OP_GET_CLASS_DATA, EPn, (uint8_t *)EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
+        } else { // Got data from another EP
+            // Call user function
+            uUSBLIB_DataReceivedHandler(EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
         }
+        USBEP[EPn] &= (~EP_CTR_RX & EP_MASK);
         USBLIB_setStatRx(EPn, RX_VALID);
     }
     if (EP & EP_CTR_TX) { //something transmitted
-        USBEP[EPn] &= (~EP_CTR_TX & EP_MASK);
-
         if (DeviceAddress) {
             USB->DADDR    = DeviceAddress | 0x80;
             DeviceAddress = 0;
@@ -369,23 +335,21 @@ void USBLIB_EPHandler(uint16_t Status)
             USBLIB_EPBuf2Pma(EPn);
             USBLIB_setStatTx(EPn, TX_VALID);
         }
+
+        USBEP[EPn] &= (~EP_CTR_TX & EP_MASK);
     }
 }
 
 void USB_LP_CAN1_RX0_IRQHandler()
 {
-    if (USB->ISTR & USB_ISTR_SOF) {
-        USB->ISTR &= ~USB_ISTR_SOF;
-        // Handle SOF
-    }
     if (USB->ISTR & USB_ISTR_RESET) { // Reset
         USB->ISTR &= ~USB_ISTR_RESET;
-//        USBLIB_AddToLogArr(LOG_OP_RESET, 0xFF, (uint8_t *){0}, 1);
         USBLIB_Reset();
         return;
     }
     if (USB->ISTR & USB_ISTR_CTR) { //Handle data on EP
         USBLIB_EPHandler((uint16_t)USB->ISTR);
+        USB->ISTR &= ~USB_ISTR_CTR;
         return;
     }
     if (USB->ISTR & USB_ISTR_PMAOVR) {
@@ -404,10 +368,27 @@ void USB_LP_CAN1_RX0_IRQHandler()
         // Handle Wakeup
         return;
     }
+    if (USB->ISTR & USB_ISTR_SOF) {
+        USB->ISTR &= ~USB_ISTR_SOF;
+        // Handle SOF
+    }
     if (USB->ISTR & USB_ISTR_ESOF) {
         USB->ISTR &= ~USB_ISTR_ESOF;
         // Handle ESOF
         return;
     }
     USB->ISTR = 0;
+}
+
+void USBLIB_Transmit(uint16_t *Data, uint16_t Length, uint16_t Timeout)
+{
+    //    while (USBEP[2] & )
+    USBLIB_SendData(2, Data, Length);
+}
+
+__weak void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length)
+{
+    /* NOTE: This function Should not be modified, when the callback is needed,
+       the USBLIB_DataReceivedHandler could be implemented in the user file
+   */
 }
