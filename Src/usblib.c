@@ -112,7 +112,7 @@ const uint8_t USBD_CDC_CFG_DESCRIPTOR[] =
         0x03, /* bmAttributes: Interrupt */
         0x08, /* wMaxPacketSize LO: */
         0x00, /* wMaxPacketSize HI: */
-        0xFF, /* bInterval: */
+        0x10, /* bInterval: */
         /*---------------------------------------------------------------------------*/
 
         /*Data class interface descriptor*/
@@ -157,9 +157,6 @@ void USBLIB_Reset(void)
 {
     /* *********** WARNING ********** */
     /* We DO NOT CHANGE BTABLE!! So we asume that buffer table start from address 0!!! */
-    USB->ISTR   = 0x00;
-    USB->CNTR   = USB_CNTR_CTRM | USB_CNTR_RESETM;
-    USB->BTABLE = 0x00;
 
     uint16_t Addr = sizeof(EPBufTable);
     for (uint8_t i = 0; i < EPCOUNT; i++) {
@@ -183,8 +180,8 @@ void USBLIB_Reset(void)
     for (uint8_t i = EPCOUNT; i < 8; i++) {
         USB->EPR[i] = i | RX_NAK | TX_NAK;
     }
+    USB->CNTR   = USB_CNTR_CTRM | USB_CNTR_RESETM | USB_CNTR_SUSPM;
     USB->ISTR   = 0x00;
-    USB->CNTR   = USB_CNTR_CTRM | USB_CNTR_RESETM;
     USB->BTABLE = 0x00;
     USB->DADDR  = USB_DADDR_EF;
 }
@@ -239,7 +236,6 @@ void USBLIB_SendData(uint8_t EPn, uint16_t *Data, uint16_t Length)
         USBLIB_EPBuf2Pma(EPn);
     } else {
         EPBufTable[EPn].TX_Count.Value = 0;
-        //        USBLIB_AddToLogArr(LOG_OP_GET_DESC_TX, EPn, 0, 0);
     }
     USBLIB_setStatTx(EPn, TX_VALID);
 }
@@ -264,6 +260,9 @@ void USBLIB_GetDescriptor(USBLIB_SetupPacket *SPacket)
             pSTR = (USB_STR_DESCRIPTOR *)((uint8_t *)pSTR + pSTR->bLength);
         }
         USBLIB_SendData(0, (uint16_t *)pSTR, pSTR->bLength);
+        break;
+    default:
+        USBLIB_SendData(0, 0, 0);
         break;
     }
 }
@@ -305,16 +304,17 @@ void USBLIB_EPHandler(uint16_t Status)
                     //TODO
                     break;
 
-                case USB_DEVICE_CDC_REQUEST_SET_LINE_CODING:
+                case USB_DEVICE_CDC_REQUEST_SET_LINE_CODING:        //0x20
                     USBLIB_SendData(0, 0, 0);
                     break;
 
-                case USB_DEVICE_CDC_REQUEST_GET_LINE_CODING:
+                case USB_DEVICE_CDC_REQUEST_GET_LINE_CODING:        //0x21
                     USBLIB_SendData(EPn, (uint16_t *)&lineCoding, sizeof(lineCoding));
                     break;
 
-                case USB_DEVICE_CDC_REQUEST_SET_CONTROL_LINE_STATE:
+                case USB_DEVICE_CDC_REQUEST_SET_CONTROL_LINE_STATE:         //0x22
                     USBLIB_SendData(0, 0, 0);
+                    uUSBLIB_LineStateHandler(SetupPacket->wValue);
                     break;
                 }
             }
@@ -322,7 +322,7 @@ void USBLIB_EPHandler(uint16_t Status)
             // Call user function
             uUSBLIB_DataReceivedHandler(EpData[EPn].pRX_BUFF, EpData[EPn].lRX);
         }
-        USBEP[EPn] &= (~EP_CTR_RX & EP_MASK);
+        USBEP[EPn] &= 0x78f;
         USBLIB_setStatRx(EPn, RX_VALID);
     }
     if (EP & EP_CTR_TX) { //something transmitted
@@ -336,7 +336,7 @@ void USBLIB_EPHandler(uint16_t Status)
             USBLIB_setStatTx(EPn, TX_VALID);
         }
 
-        USBEP[EPn] &= (~EP_CTR_TX & EP_MASK);
+        USBEP[EPn] &= 0x870f;
     }
 }
 
@@ -357,7 +357,14 @@ void USB_LP_CAN1_RX0_IRQHandler()
         // Handle PMAOVR status
         return;
     }
-
+    if (USB->ISTR & USB_ISTR_SUSP) {
+        USB->ISTR &= ~USB_ISTR_SUSP;
+        if (USB->DADDR & 0x7f) {
+            USB->DADDR = 0;
+            USB->CNTR &= ~ 0x800;
+        }
+        return;
+    }
     if (USB->ISTR & USB_ISTR_ERR) {
         USB->ISTR &= ~USB_ISTR_ERR;
         // Handle Error
@@ -371,6 +378,7 @@ void USB_LP_CAN1_RX0_IRQHandler()
     if (USB->ISTR & USB_ISTR_SOF) {
         USB->ISTR &= ~USB_ISTR_SOF;
         // Handle SOF
+        return;
     }
     if (USB->ISTR & USB_ISTR_ESOF) {
         USB->ISTR &= ~USB_ISTR_ESOF;
@@ -389,6 +397,13 @@ void USBLIB_Transmit(uint16_t *Data, uint16_t Length, uint16_t Timeout)
 __weak void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length)
 {
     /* NOTE: This function Should not be modified, when the callback is needed,
-       the USBLIB_DataReceivedHandler could be implemented in the user file
-   */
+       the uUSBLIB_DataReceivedHandler could be implemented in the user file
+    */
+}
+
+__weak void uUSBLIB_LineStateHandler(USBLIB_WByte LineState)
+{
+    /* NOTE: This function Should not be modified, when the callback is needed,
+       the uUSBLIB_LineStateHandler could be implemented in the user file
+    */
 }

@@ -1,21 +1,7 @@
 #include "stm32f10x.h"
 #include "usblib.h"
 
-#define USART_BUF_LEN 64
-#define APB1CLK 72000000UL
-#define APB2CLK 72000000UL
-#define BAUDRATE 115200UL
-
-#define UART_DIV_SAMPLING16(_PCLK_, _BAUD_) (((_PCLK_)*25) / (4 * (_BAUD_)))
-#define UART_DIVMANT_SAMPLING16(_PCLK_, _BAUD_) (UART_DIV_SAMPLING16((_PCLK_), (_BAUD_)) / 100)
-#define UART_DIVFRAQ_SAMPLING16(_PCLK_, _BAUD_) (((UART_DIV_SAMPLING16((_PCLK_), (_BAUD_)) - (UART_DIVMANT_SAMPLING16((_PCLK_), (_BAUD_)) * 100)) * 16 + 50) / 100)
-
-#define UART_BRR_SAMPLING16(_PCLK_, _BAUD_) (((UART_DIVMANT_SAMPLING16((_PCLK_), (_BAUD_)) << 4) +    \
-                                              (UART_DIVFRAQ_SAMPLING16((_PCLK_), (_BAUD_)) & 0xF0)) + \
-                                             (UART_DIVFRAQ_SAMPLING16((_PCLK_), (_BAUD_)) & 0x0F))
-
-uint8_t Usart1Buf[USART_BUF_LEN];
-uint8_t Usart2Buf[USART_BUF_LEN];
+USBLIB_WByte _LineState;
 
 int main(void)
 {
@@ -51,6 +37,15 @@ int main(void)
     /* PB13 - USB EN. Output PP */
     GPIOB->CRH |= GPIO_CRH_MODE13_0;
     GPIOB->CRH &= ~GPIO_CRH_CNF13;
+    
+    /* =========== TIM1 ========== */
+    RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
+    TIM1->PSC = 1000 - 1;
+    TIM1->ARR = 48000 - 1;
+    TIM1->DIER |= TIM_DIER_UIE;
+    //TIM1->CR1 = TIM_CR1_CEN | TIM_CR1_ARPE;
+    NVIC_SetPriority(TIM1_UP_IRQn, 15);
+    NVIC_EnableIRQ(TIM1_UP_IRQn);
 
     GPIOB->ODR &= ~GPIO_ODR_ODR13; //LOW
     for (int i = 0; i < 1000000; i++) {
@@ -60,12 +55,29 @@ int main(void)
     USBLIB_Init();
     GPIOB->ODR |= GPIO_ODR_ODR13; //UP
 
-    while (1) {
-        //        USBLIB_HandleStatus();
-    };
+    while (1) {};
+}
+
+void TIM1_UP_IRQHandler() {
+    TIM1->SR &= ~TIM_SR_UIF;
+    GPIOB->ODR ^= GPIO_ODR_ODR12;
+
+    if (_LineState.L) {      //App connected to the virtual port
+        USBLIB_Transmit((uint16_t *)"Welcome to the club!\r\n", 22, 100);
+    } else {
+        USBLIB_Transmit((uint16_t *)"Bye bye!\r\n", 10, 100);
+    }
 }
 
 void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length)
 {
     USBLIB_Transmit(Data, Length, 100);
+}
+
+void uUSBLIB_LineStateHandler(USBLIB_WByte LineState)
+{
+    if (LineState.L) {      //App connected to the virtual port
+        _LineState = LineState;
+        TIM1->CR1 = TIM_CR1_CEN | TIM_CR1_ARPE;
+    }
 }

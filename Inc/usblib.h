@@ -301,5 +301,6 @@ void USBLIB_LogCheckForTransmit(void);
 void USBLIB_Transmit(uint16_t *Data, uint16_t Length, uint16_t Timeout);
 
 __weak void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length);
+void uUSBLIB_LineStateHandler(USBLIB_WByte LineState);
 
 #endif
