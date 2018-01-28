@@ -4,7 +4,7 @@ Current implementation create Virtual Com Port with next settings: 115200, 0, no
 ## How to use
 * Add `usblib.c` and `usblib.h` to your project.
 * Make shure you have configured USB to 48 MHz clock and RCC to 48 MHz or more (72 MHz is recomended).
-** It's strongly recomended to use 1,5K GPIO driven pull-up rezistor to have full controll of USB line initiate sequence.
+* It's strongly recomended to use 1,5K GPIO driven pull-up rezistor to have full controll of USB line initiate sequence.
 * Call `USBLIB_Init();` to enable USB and make initial configuration of USB registers. Please note - `USBLIB_Init();` will trigget USB RESET sequence.
 * Enable 1.5K pull-up resistor to allow host detect device connection.
   * If your device connected to Windows host use `RemoteSwithHUB.inf` to install a default Windows driver. After installation you will see new COM port named `RemoteSwith HUB` (If you want to change this name you need to edit  it in `usblib.c` and `inf` files).
