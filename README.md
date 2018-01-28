@@ -16,5 +16,6 @@ if (LineState.L) {      //App connected to the virtual port
     USBLIB_Transmit((uint16_t *)"Welcome to the club!\r\n", 22, 100);
 }
 ```
-
 * Inplement `void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length)` in your code to accept data from host. See `main.c` f.e.
+
+Code well tested on Windows7, MacOS 10.13 (High Sierra) and Raspbian OS.
