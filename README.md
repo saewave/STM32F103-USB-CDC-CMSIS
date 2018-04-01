@@ -7,7 +7,7 @@ Current implementation create Virtual Com Port with next settings: 115200, 0, no
 * It's strongly recomended to use 1,5K GPIO driven pull-up rezistor to have full controll of USB line initiate sequence.
 * Call `USBLIB_Init();` to enable USB and make initial configuration of USB registers. Please note - `USBLIB_Init();` will trigget USB RESET sequence.
 * Enable 1.5K pull-up resistor to allow host detect device connection.
-  * If your device connected to Windows host use `RemoteSwithHUB.inf` to install a default Windows driver. After installation you will see new COM port named `RemoteSwith HUB` (If you want to change this name you need to edit  it in `usblib.c` and `inf` files).
+  * If your device connected to Windows host use `RemoteSwitchHUB.inf` to install a default Windows driver. After installation you will see new COM port named `RemoteSwitch HUB` (If you want to change this name you need to edit  it in `usblib.c` and `inf` files).
   * If your device connected to Unix systems then you will see a new device in /dev/ dir.
 * Implement ```void uUSBLIB_LineStateHandler(USBLIB_WByte LineState)``` in your code to handle line state. See `main.c` for example. 
 NOTE: you can't send any data to host when port is closed! To controll when port is opened use this condition:
