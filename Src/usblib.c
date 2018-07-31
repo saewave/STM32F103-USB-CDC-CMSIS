@@ -37,7 +37,7 @@ USBLIB_EPData EpData[EPCOUNT] =
 void USBLIB_Init(void)
 {
     NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
-    RCC->APB1ENR = RCC_APB1ENR_USBEN;
+    RCC->APB1ENR |= RCC_APB1ENR_USBEN;
 
     USB->CNTR   = USB_CNTR_FRES; /* Force USB Reset */
     USB->BTABLE = 0;
