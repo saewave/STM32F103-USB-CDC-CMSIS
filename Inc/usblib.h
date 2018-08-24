@@ -316,9 +316,10 @@ void USBLIB_ResetUSB(void);
 void USBLIB_Reset(void);
 void USBLIB_SetEPTable(uint8_t EP, uint32_t TXAddress, uint32_t TXCount, uint32_t RXAddress, uint32_t RXCount);
 void USBLIB_LogCheckForTransmit(void);
-void USBLIB_Transmit(uint16_t *Data, uint16_t Length, uint16_t Timeout);
+void USBLIB_Transmit(uint16_t *Data, uint16_t Length);
+void uUSBLIB_LineStateHandler(USBLIB_WByte LineState);
 
 __weak void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length);
-void uUSBLIB_LineStateHandler(USBLIB_WByte LineState);
+__weak void uUSBLIB_DataTransmitedHandler(uint8_t EPn, USBLIB_EPData EpData);
 
 #endif

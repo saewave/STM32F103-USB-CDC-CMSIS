@@ -24,8 +24,9 @@
 volatile USB_TypeDef *USB = (USB_TypeDef *)USB_BASE;
 volatile USBLIB_EPBuf EPBufTable[EPCOUNT] __attribute__((at(USB_PBUFFER)));
 volatile uint32_t     USBEP[EPCOUNT] __attribute__((at(USB_BASE)));
-USBLIB_SetupPacket *  SetupPacket;
+USBLIB_SetupPacket   *SetupPacket;
 volatile uint8_t      DeviceAddress = 0;
+volatile USBLIB_WByte LineState;
 
 USBLIB_EPData EpData[EPCOUNT] =
     {
@@ -331,6 +332,7 @@ void USBLIB_EPHandler(uint16_t Status)
                     break;
 
                 case USB_DEVICE_CDC_REQUEST_SET_CONTROL_LINE_STATE:         //0x22
+                    LineState = SetupPacket->wValue;
                     USBLIB_SendData(0, 0, 0);
                     uUSBLIB_LineStateHandler(SetupPacket->wValue);
                     break;
@@ -352,6 +354,8 @@ void USBLIB_EPHandler(uint16_t Status)
         if (EpData[EPn].lTX) { //Have to transmit something?
             USBLIB_EPBuf2Pma(EPn);
             USBLIB_setStatTx(EPn, TX_VALID);
+        } else {
+            uUSBLIB_DataTransmitedHandler(EPn, EpData[EPn]);
         }
 
         USBEP[EPn] &= 0x870f;
@@ -406,16 +410,24 @@ void USB_LP_CAN1_RX0_IRQHandler()
     USB->ISTR = 0;
 }
 
-void USBLIB_Transmit(uint16_t *Data, uint16_t Length, uint16_t Timeout)
+void USBLIB_Transmit(uint16_t *Data, uint16_t Length)
 {
-    //    while (USBEP[2] & )
-    USBLIB_SendData(2, Data, Length);
+//    if (LineState.L) {
+        USBLIB_SendData(2, Data, Length);
+//    }
 }
 
 __weak void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length)
 {
     /* NOTE: This function Should not be modified, when the callback is needed,
        the uUSBLIB_DataReceivedHandler could be implemented in the user file
+    */
+}
+
+__weak void uUSBLIB_DataTransmitedHandler(uint8_t EPn, USBLIB_EPData EpData)
+{
+    /* NOTE: This function Should not be modified, when the callback is needed,
+       the uUSBLIB_EPStateHandler could be implemented in the user file
     */
 }
 
