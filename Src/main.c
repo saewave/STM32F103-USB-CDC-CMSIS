@@ -81,9 +81,9 @@ void TIM1_UP_IRQHandler() {
     GPIOB->ODR ^= GPIO_ODR_ODR12;
 
     if (_LineState.L) {      //App connected to the virtual port
-        USBLIB_Transmit((uint16_t *)"Welcome to the club!\r\n", 22, 100);
+        USBLIB_Transmit((uint16_t *)"Welcome to the club!\r\n", 22);
     } else {
-        USBLIB_Transmit((uint16_t *)"Bye bye!\r\n", 10, 100);
+        USBLIB_Transmit((uint16_t *)"Bye bye!\r\n", 10);
     }
 }
 
