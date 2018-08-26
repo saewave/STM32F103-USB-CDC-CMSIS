@@ -89,7 +89,7 @@ void TIM1_UP_IRQHandler() {
 
 void uUSBLIB_DataReceivedHandler(uint16_t *Data, uint16_t Length)
 {
-    USBLIB_Transmit(Data, Length, 100);
+    USBLIB_Transmit(Data, Length);
 }
 
 void uUSBLIB_LineStateHandler(USBLIB_WByte LineState)
