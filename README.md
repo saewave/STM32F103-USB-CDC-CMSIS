@@ -3,7 +3,7 @@ STM32F103 USB CDC CMSIS provires a simple low weight firmware for STM32F1 serie 
 Current implementation create Virtual Com Port with next settings: 115200, 0, none, 8, but you can change these settings as you want.
 ## How to use
 * Add `usblib.c` and `usblib.h` to your project.
-* Make shure you have configured USB to 48 MHz clock and RCC to 48 MHz or more (72 MHz is recomended).
+* Make sure you have configured USB to 48 MHz clock and RCC to 48 MHz or more (72 MHz is recomended).
 * It's strongly recomended to use 1,5K GPIO driven pull-up rezistor to have full controll of USB line initiate sequence.
 * Call `USBLIB_Init();` to enable USB and make initial configuration of USB registers. Please note - `USBLIB_Init();` will trigget USB RESET sequence.
 * Enable 1.5K pull-up resistor to allow host detect device connection.
