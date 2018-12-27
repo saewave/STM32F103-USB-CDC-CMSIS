@@ -283,7 +283,7 @@ typedef struct
     uint8_t            bRequest;
     USBLIB_WByte       wValue;
     USBLIB_WByte       wIndex;
-    uint8_t            wLength;
+    uint16_t           wLength;
 } USBLIB_SetupPacket;
 
 typedef struct

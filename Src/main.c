@@ -30,7 +30,7 @@ int main(void)
         __NOP();
     };
     RCC->CR &= ~RCC_CR_PLLON; // Disable Pll
-    while ((RCC->CR & RCC_CR_PLLON)) {
+    while ((RCC->CR & RCC_CR_PLLRDY)) {
         __NOP();
     };
     RCC->CFGR &= ~0x3C0000;

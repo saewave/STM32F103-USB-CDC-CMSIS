@@ -30,7 +30,7 @@ volatile USBLIB_WByte LineState;
 
 USBLIB_EPData EpData[EPCOUNT] =
     {
-        {0, EP_CONTROL, 8, 8, 0, 0, 0, 0, 64, 0},
+        {0, EP_CONTROL, 64, 64, 0, 0, 0, 0, 64, 0},
         {1, EP_INTERRUPT, 16, 16, 0, 0, 0, 0, 64, 0},
         {2, EP_BULK, 64, 64, 0, 0, 0, 0, 64, 0},  //IN  (Device -> Host)
         {3, EP_BULK, 64, 64, 0, 0, 0, 0, 64, 0}}; //OUT (Host   -> Device)
@@ -59,7 +59,7 @@ const uint8_t USB_DEVICE_DESC[] =
         (uint8_t)USB_COMM,                  //    bDeviceClass
         (uint8_t)0,                         //    bDeviceSubClass
         (uint8_t)0,                         //    bDeviceProtocol
-        (uint8_t)8,                         //    bMaxPacketSize0
+        (uint8_t)64,                        //    bMaxPacketSize0
         (uint8_t)LOBYTE(DEVICE_VENDOR_ID),  //    idVendor
         (uint8_t)HIBYTE(DEVICE_VENDOR_ID),  //    idVendor
         (uint8_t)LOBYTE(DEVICE_PRODUCT_ID), //    idProduct
@@ -175,7 +175,7 @@ _USB_STRING_(wsCDCData, L"CDC Data")
 void USBLIB_Reset(void)
 {
     /* *********** WARNING ********** */
-    /* We DO NOT CHANGE BTABLE!! So we asume that buffer table start from address 0!!! */
+    /* We DO NOT CHANGE BTABLE!! So we assume that buffer table start from address 0!!! */
 
     uint16_t Addr = sizeof(EPBufTable);
     for (uint8_t i = 0; i < EPCOUNT; i++) {
@@ -232,18 +232,21 @@ void USBLIB_Pma2EPBuf2(uint8_t EPn)
 void USBLIB_EPBuf2Pma(uint8_t EPn)
 {
     uint32_t *Distination;
+    uint16_t *TX_Buff;
     uint8_t   Count;
 
     Count                          = EpData[EPn].lTX <= EpData[EPn].TX_Max ? EpData[EPn].lTX : EpData[EPn].TX_Max;
     EPBufTable[EPn].TX_Count.Value = Count;
 
+    TX_Buff = EpData[EPn].pTX_BUFF;
     Distination = (uint32_t *)(USB_PBUFFER + EPBufTable[EPn].TX_Address.Value * 2);
     for (uint8_t i = 0; i < (Count + 1) / 2; i++) {
-        *(uint32_t *)Distination = *(uint16_t *)EpData[EPn].pTX_BUFF;
+        *(uint16_t *)Distination = *TX_Buff;
         Distination++;
-        EpData[EPn].pTX_BUFF++;
+        TX_Buff++;
     }
     EpData[EPn].lTX -= Count;
+    EpData[EPn].pTX_BUFF = TX_Buff;
 }
 
 void USBLIB_SendData(uint8_t EPn, uint16_t *Data, uint16_t Length)
@@ -262,6 +265,7 @@ void USBLIB_SendData(uint8_t EPn, uint16_t *Data, uint16_t Length)
 void USBLIB_GetDescriptor(USBLIB_SetupPacket *SPacket)
 {
     uint8_t             c;
+    uint16_t            sz;
     USB_STR_DESCRIPTOR *pSTR;
     switch (SPacket->wValue.H) {
     case USB_DEVICE_DESC_TYPE:
@@ -269,7 +273,11 @@ void USBLIB_GetDescriptor(USBLIB_SetupPacket *SPacket)
         break;
 
     case USB_CFG_DESC_TYPE:
-        USBLIB_SendData(0, (uint16_t *)&USBD_CDC_CFG_DESCRIPTOR, sizeof(USBD_CDC_CFG_DESCRIPTOR));
+        sz = sizeof(USBD_CDC_CFG_DESCRIPTOR);
+        if( sz > SPacket->wLength) {
+            sz = SPacket->wLength;
+        }
+        USBLIB_SendData(0, (uint16_t *)&USBD_CDC_CFG_DESCRIPTOR, sz);
         break;
 
     case USB_STR_DESC_TYPE:
